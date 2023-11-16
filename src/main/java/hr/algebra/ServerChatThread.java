@@ -40,7 +40,7 @@ public class ServerChatThread extends Thread {
     }
 
     private void sendMessageToAllClients(String message) throws RemoteException {
-        var clients = remoteService.getClients();
+        var clients = remoteService.getChatClients();
         try {
             for (Socket clientSocket : clients) {
                 printWriter = new PrintWriter(clientSocket.getOutputStream(), true);

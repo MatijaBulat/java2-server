@@ -12,7 +12,7 @@ public interface RemoteService extends Remote {
     String REMOTE_OBJECT_NAME = "hr.algebra.rmi";
     void sendMessage(String message) throws RemoteException;
     List<String> getChatMessage() throws RemoteException;
-    void addClient(Socket clientSocket) throws RemoteException;
-    List<Socket> getClients()throws RemoteException;
+    void addChatClient(Socket clientSocket) throws RemoteException;
+    List<Socket> getChatClients()throws RemoteException;
 }
 

@@ -10,7 +10,7 @@ import java.util.List;
 
 public class RemoteServiceImpl implements RemoteService {
     private List<String> chatMessagesList = new ArrayList<String>();
-    private List<Socket> clients = new ArrayList<>();
+    private List<Socket> chatClients = new ArrayList<Socket>();
 
     @Override
     public void sendMessage(String message) throws RemoteException  {
@@ -23,12 +23,12 @@ public class RemoteServiceImpl implements RemoteService {
     }
 
     @Override
-    public void addClient(Socket clientSocket) throws RemoteException {
-        clients.add(clientSocket);
+    public void addChatClient(Socket clientSocket) throws RemoteException {
+        chatClients.add(clientSocket);
     }
 
     @Override
-    public List<Socket> getClients() throws RemoteException {
-        return clients;
+    public List<Socket> getChatClients() throws RemoteException {
+        return chatClients;
     }
 }
