@@ -1,53 +1,54 @@
 package hr.algebra;
 
+import hr.algebra.rmi.JndiHelper;
 import hr.algebra.rmi.RemoteService;
+import hr.algebra.rmi.RemoteServiceImpl;
 
-import java.io.BufferedReader;
+import javax.naming.NamingException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
-import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerChatThread extends Thread {
-    private RemoteService remoteService;
-    private PrintWriter printWriter;
-    private int listTempLength = 0;
+    private static final String SERVER_CHAT_PORT_KEY = "server.chat.port";
+    private static int SERVER_CHAT_PORT;
+    private static ServerChatThread instance;
+    private final RemoteService remoteService;
 
-    public ServerChatThread(RemoteService remoteService) {
-        this.remoteService = remoteService;
+    private ServerChatThread() {
+        this.remoteService = RemoteServiceImpl.getInstance();
+    }
+
+    static {
+        try {
+            SERVER_CHAT_PORT = Integer.parseInt(JndiHelper.getValueFromConfiguration(SERVER_CHAT_PORT_KEY));
+        } catch (IOException | NamingException ex) {
+            Logger.getLogger(ServerChatThread.class.getName()).log(Level.SEVERE, "IOException | NamingException", ex);
+        }
+    }
+
+    public static ServerChatThread getInstance() {
+        if (instance == null) {
+            instance = new ServerChatThread();
+        }
+        return instance;
     }
 
     @Override
     public void run() {
-        try {
-            while (true) {
-                if (remoteService.getChatMessage().size() > listTempLength) {
-                    listTempLength = remoteService.getChatMessage().size();
-                    sendMessageToAllClients(remoteService.getChatMessage().get(remoteService.getChatMessage().size() - 1));
-                }
-                Thread.sleep( 500);
-            }
-        }
-        catch (Exception ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Exception", ex);
-        }
-    }
+        try (ServerSocket serverChatSocket = new ServerSocket(SERVER_CHAT_PORT)) {
+            MessageBroadcastThread messageBroadcastThread = new MessageBroadcastThread(remoteService);
+            messageBroadcastThread.setDaemon(true);
+            messageBroadcastThread.start();
 
-    private void sendMessageToAllClients(String message) throws RemoteException {
-        var clients = remoteService.getChatClients();
-        try {
-            for (Socket clientSocket : clients) {
-                printWriter = new PrintWriter(clientSocket.getOutputStream(), true);
-                printWriter.println(message);
+            while (true) {
+                Socket socket = serverChatSocket.accept();
+                remoteService.addChatClient(socket);
             }
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "IOException", ex);
+        } catch (Exception ex) {
+            Logger.getLogger(ServerChatThread.class.getName()).log(Level.SEVERE, "Exception", ex);
         }
     }
 }

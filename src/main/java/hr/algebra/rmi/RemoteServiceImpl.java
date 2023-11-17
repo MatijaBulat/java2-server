@@ -9,8 +9,18 @@ import java.util.Date;
 import java.util.List;
 
 public class RemoteServiceImpl implements RemoteService {
+    private static RemoteService instance;
     private List<String> chatMessagesList = new ArrayList<String>();
     private List<Socket> chatClients = new ArrayList<Socket>();
+
+    private RemoteServiceImpl() {}
+
+    public static RemoteService getInstance() {
+        if (instance == null) {
+            instance = new RemoteServiceImpl();
+        }
+        return instance;
+    }
 
     @Override
     public void sendMessage(String message) throws RemoteException  {

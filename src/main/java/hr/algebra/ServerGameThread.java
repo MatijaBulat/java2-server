@@ -1,25 +1,39 @@
 package hr.algebra;
 
-import hr.algebra.client.model.Player;
+import hr.algebra.rmi.JndiHelper;
 
-import javax.swing.plaf.ActionMapUIResource;
+import javax.naming.NamingException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ServerGameThread extends Thread {
-    private final int SERVER_GAME_PORT;
-    private List<ClientGameHandler> gameClients;
+    private static final String SERVER_GAME_PORT_KEY = "server.game.port";
+    private static int SERVER_GAME_PORT;
+    private static ServerGameThread instance;
+    private static List<ClientGameThread> gameClients = new ArrayList<ClientGameThread>();
 
-    public ServerGameThread(int serverGamePort, List<ClientGameHandler> gameClients) {
-        this.SERVER_GAME_PORT = serverGamePort;
-        this.gameClients = gameClients;
+    private ServerGameThread() {}
+
+    static {
+        try {
+            SERVER_GAME_PORT = Integer.parseInt(JndiHelper.getValueFromConfiguration(SERVER_GAME_PORT_KEY));
+        } catch (IOException | NamingException ex) {
+            Logger.getLogger(ServerGameThread.class.getName()).log(Level.SEVERE, "IOException | NamingException", ex);
+        }
     }
+
+    public static ServerGameThread getInstance() {
+        if (instance == null) {
+            instance = new ServerGameThread();
+        }
+        return instance;
+    }
+
     @Override
     public void run() {
         System.out.println("ServerGameThread run fnc");
@@ -31,15 +45,15 @@ public class ServerGameThread extends Thread {
                 Socket socket = serverGameSocket.accept();
                 System.out.println("client connected");
 
-                ClientGameHandler clientGameHandler = new ClientGameHandler(socket, gameClients);
-                clientGameHandler.start();
-                System.out.println("clientGameHandler started");
+                ClientGameThread clientGameThread = new ClientGameThread(socket, gameClients);
+                clientGameThread.start();
+                System.out.println("clientGameThread started");
 
-                gameClients.add(clientGameHandler);
+                gameClients.add(clientGameThread);
                 System.out.println("client added");
             }
         } catch (Exception ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Exception", ex);
+            Logger.getLogger(ServerGameThread.class.getName()).log(Level.SEVERE, "Exception", ex);
         }
     }
 }
