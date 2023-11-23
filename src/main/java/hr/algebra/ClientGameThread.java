@@ -1,6 +1,7 @@
 package hr.algebra;
 
 import hr.algebra.client.model.Player;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,12 +14,13 @@ public class ClientGameThread extends Thread {
     private Socket socket;
     private ObjectInputStream objectInputStream;
     private ObjectOutputStream objectOutputStream;
-    private static List<ClientGameThread> gameClients;
+    private List<ClientGameThread> gameClients;
+    private Player playerLastState;
 
     public ClientGameThread(Socket socket, List<ClientGameThread> gameClients) {
         this.socket = socket;
         this.gameClients = gameClients;
-        
+
         try {
             this.objectInputStream = new ObjectInputStream(socket.getInputStream());
             this.objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
@@ -30,12 +32,11 @@ public class ClientGameThread extends Thread {
 
     @Override
     public void run() {
-        System.out.println("ClientGameThread run fnc");
         while (socket.isConnected()) {
-            System.out.println("while");
             try {
                 Player player = (Player) objectInputStream.readObject();
-                System.out.println("player received: " + player);
+
+                setPlayerLastState(player);
                 broadcastPlayerState(player);
             } catch (IOException | ClassNotFoundException ex) {
                 Logger.getLogger(ClientGameThread.class.getName()).log(Level.SEVERE, "IOException | ClassNotFoundException", ex);
@@ -45,15 +46,12 @@ public class ClientGameThread extends Thread {
         }
     }
 
-    private void broadcastPlayerState(Player player) {
-        System.out.println("broadcastPlayerState fnc");
+    public synchronized void broadcastPlayerState(Player player) {
         for (ClientGameThread clientGameThread : gameClients) {
-            System.out.println("for loop");
             try {
                 if (clientGameThread.socket != socket) {
                     clientGameThread.objectOutputStream.writeObject(player);
                     clientGameThread.objectOutputStream.flush();
-                    System.out.println("player sent");
                 }
             } catch (IOException ex) {
                 Logger.getLogger(ClientGameThread.class.getName()).log(Level.SEVERE, "IOException", ex);
@@ -76,4 +74,14 @@ public class ClientGameThread extends Thread {
             Logger.getLogger(ClientGameThread.class.getName()).log(Level.SEVERE, "IOException", ex);
         }
     }
+
+    public Player getPlayerLastState() {
+        return playerLastState;
+    }
+
+    private void setPlayerLastState(Player playerLastState) {
+        this.playerLastState = playerLastState;
+    }
 }
+
+
